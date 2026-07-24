@@ -54,11 +54,11 @@ export default function Footer() {
     Resources: [
       {
         label: "GitHub",
-        href: "https://github.com/Jasz-rgb/summariser",
+        href: "https://github.com/Jasz-rgb/DocDocGo",
       },
       {
         label: "Documentation",
-        href: "https://github.com/Jasz-rgb/summariser#readme",
+        href: "https://github.com/Jasz-rgb/DocDocGo#readme",
       },
     ],
   };

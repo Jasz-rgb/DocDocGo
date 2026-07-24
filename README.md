@@ -114,7 +114,7 @@ Text is extracted server-side before being processed by Gemini.
 # Overall Project Structure
 
 ```text
-summariser/
+DocDocGo/
 │
 ├── app/
 ├── components/
@@ -158,8 +158,8 @@ NEXT_PUBLIC_APP_URL=
 Clone the repository
 
 ```bash
-git clone https://github.com/Jasz-rgb/summariser.git
-cd summariser
+git clone https://github.com/Jasz-rgb/DocDocGo.git
+cd DocDocGo
 ```
 
 Install dependencies
