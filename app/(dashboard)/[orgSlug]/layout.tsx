@@ -13,7 +13,7 @@ interface OrgLayoutProps {
 
 export default async function OrgLayout({ children, params }: OrgLayoutProps) {
   const { orgSlug } = await params;
-  const { userId } = await auth();
+  const { userId,orgId } = await auth();
   await syncOrganizationToDatabase();
   await syncMembershipToDatabase();
   if (!userId) {
@@ -26,13 +26,35 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
   }
   console.log("====== ORG DEBUG ======");
   console.log("URL slug:", orgSlug);
-
-  const { orgId } = await auth();
   console.log("Clerk orgId:", orgId);
   console.log("Clerk userId:", userId);
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  if (!orgId) {
+    redirect("/select-org");
+  }
+
   const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+    where: {
+      clerkOrgId: orgId,
+    },
   });
+
+  if (!organization) {
+    await syncOrganizationToDatabase();
+
+    const synced = await prisma.organization.findUnique({
+      where: {
+        clerkOrgId: orgId,
+      },
+    });
+
+    if (!synced) {
+      redirect("/select-org");
+    }
+  }
   console.log("DB organization:", organization);
   if (!organization) {
     redirect("/select-org");

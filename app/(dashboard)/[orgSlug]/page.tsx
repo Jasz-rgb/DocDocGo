@@ -6,22 +6,20 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
-interface OrgDashboardPageProps {
-  params: Promise<{ orgSlug: string }>;     //
-}
+// interface OrgDashboardPageProps {
+//   params: Promise<{ orgSlug: string }>;     //
+// }
 
-export default async function OrgDashboardPage({
-  params,
-}: OrgDashboardPageProps) {
-  const { orgSlug } = await params;
-  const { userId } = await auth();
+export default async function OrgDashboardPage() {
+  const { userId,orgId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  }
+  if (!userId) redirect("/sign-in");
+  if (!orgId) redirect("/select-org");
 
-  const organization = await prisma.organization.findUnique({   //get org with stats
-    where: { slug: orgSlug },
+  const organization = await prisma.organization.findUnique({
+    where: {
+      clerkOrgId: orgId,
+    },
     include: {
       _count: {
         select: {
@@ -76,7 +74,7 @@ export default async function OrgDashboardPage({
             <div className="text-3xl font-bold">
               {organization._count.documents}
             </div>
-            <Link href={`/${orgSlug}/documents`}>
+            <Link href="/documents">
               <Button variant="ghost" size="sm" className="mt-2">
                 View Documents
                 <ArrowRight className="ml-2 h-3 w-3" />
@@ -129,7 +127,7 @@ export default async function OrgDashboardPage({
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">No documents uploaded yet</p>
-              <Link href={`/${orgSlug}/documents`}>
+              <Link href="/documents">
                 <Button>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload First Document

@@ -58,24 +58,30 @@ export default function SelectOrgPage() {
       toast.success(`Organization "${orgName}" created successfully`);
       setOrgName("");
 
-      try {//save
+      try {
         const response = await fetch("/api/organizations", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             clerkOrgId: newOrg.id,
             name: orgName.trim(),
-            slug: newOrg.slug || orgName.trim().toLowerCase().replace(/\s+/g, "-"),
+            slug:
+              newOrg.slug ??
+              orgName.trim().toLowerCase().replace(/\s+/g, "-"),
           }),
         });
 
+        const data = await response.json();
+
+        console.log("Organization API:", response.status, data);
+
         if (!response.ok) {
-          console.warn(
-            "Database sync had issues, but organization was created in Clerk",
-          );
+          throw new Error(data.error ?? "Failed to save organization");
         }
-      } catch (dbError) {
-        console.warn("Database sync failed:", dbError);
+      } catch (err) {
+        console.error("Database sync failed:", err);
       }
 
       if (setActive) {
