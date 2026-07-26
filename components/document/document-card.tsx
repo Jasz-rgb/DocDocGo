@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
 import { Document, AnalysisType } from "@/types";
 import { analysisTypes } from "@/app/data/data";
+import {jsPDF} from "jspdf";
 
 interface DocumentCardProps {
   document: Document;
@@ -79,7 +80,10 @@ export function DocumentCard({
 
             {/* AI Analysis Section */}
             {doc.aiSummary && (
-              <div className="mt-4 p-4 bg-linear-to-r from-gray-50 to-blue-50 rounded-lg border">
+              <div
+                id={`ai-report-${doc.id}`}
+                className="mt-4 p-4 bg-linear-to-r from-gray-50 to-blue-50 rounded-lg border"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Brain className="h-5 w-5 text-green-600" />
@@ -151,12 +155,210 @@ export function DocumentCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(doc.fileUrl, "_blank")}
-              title="Download"
-              className="justify-start"
+              onClick={() => {
+                if (!doc.aiSummary) return;
+
+                const pdf = new jsPDF("p", "mm", "a4");
+                const margin = 15;
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const maxWidth = pageWidth - 2 * margin;
+
+                let y = 20;
+
+                // Title
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(18);
+                pdf.text("AI Document Analysis Report", margin, y);
+
+                y += 12;
+
+                // Document Info
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(12);
+                pdf.text(`Document: ${doc.name}`, margin, y);
+                y += 8;
+
+                pdf.text(
+                  `Generated: ${new Date().toLocaleString()}`,
+                  margin,
+                  y
+                );
+                y += 10;
+
+                // Sentiment
+                if (doc.sentiment) {
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text("Sentiment:", margin, y);
+                  pdf.setFont("helvetica", "normal");
+                  pdf.text(doc.sentiment, margin + 30, y);
+                  y += 10;
+                }
+
+                // Keywords
+                if (doc.aiKeywords.length) {
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text("Keywords:", margin, y);
+                  y += 7;
+                  pdf.setFont("helvetica", "normal");
+                  const keywordLines = pdf.splitTextToSize(
+                    doc.aiKeywords.join(", "),
+                    maxWidth
+                  );
+                  pdf.text(keywordLines, margin, y);
+                  y += keywordLines.length * 6 + 8;
+                }
+
+                // Summary
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text("AI Summary", margin, y);
+                y += 10;
+
+                const addText = (
+                  text: string,
+                  size = 11,
+                  indent = 0
+                ) => {
+                  pdf.setFontSize(size);
+
+                  const wrappedLines = pdf.splitTextToSize(
+                    text.replace(/\*\*/g, ""),
+                    maxWidth - indent
+                  );
+
+                  let remaining = text;
+
+                  for (const wrapped of wrappedLines) {
+                    if (y > pageHeight - 15) {
+                      pdf.addPage();
+                      y = 20;
+                    }
+
+                    let x = margin + indent;
+                    let plainCount = 0;
+
+                    while (plainCount < wrapped.length && remaining.length > 0) {
+                      const boldStart = remaining.indexOf("**");
+
+                      // No bold left
+                      if (boldStart === -1) {
+                        const part = remaining.substring(0, wrapped.length - plainCount);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.text(part, x, y);
+                        x += pdf.getTextWidth(part);
+                        remaining = remaining.substring(part.length);
+                        plainCount += part.length;
+                        break;
+                      }
+
+                      // Normal text before bold
+                      if (boldStart > 0) {
+                        const normal = remaining.substring(0, boldStart);
+                        const take = Math.min(normal.length, wrapped.length - plainCount);
+                        const piece = normal.substring(0, take);
+                        pdf.setFont("helvetica", "normal");
+                        pdf.text(piece, x, y);
+                        x += pdf.getTextWidth(piece);
+                        remaining = remaining.substring(take);
+                        plainCount += take;
+                        if (take < normal.length) break;
+                      }
+
+                      // Bold text
+                      if (remaining.startsWith("**")) {
+                        const end = remaining.indexOf("**", 2);
+                        if (end === -1) break;
+                        const bold = remaining.substring(2, end);
+                        const take = Math.min(bold.length, wrapped.length - plainCount);
+                        const piece = bold.substring(0, take);
+                        pdf.setFont("helvetica", "bold");
+                        pdf.text(piece, x, y);
+                        x += pdf.getTextWidth(piece);
+                        if (take === bold.length) {
+                          remaining = remaining.substring(end + 2);
+                        } else {
+                          remaining =
+                            "**" +
+                            bold.substring(take) +
+                            "**" +
+                            remaining.substring(end + 2);
+                        }
+                        plainCount += take;
+                      }
+                    }
+                    y += size * 0.45 + 2;
+                  }
+                };
+                const lines = doc.aiSummary.split("\n");
+                for (let line of lines) {
+                  line = line.trim();
+                  if (!line) {
+                    y += 3;
+                    continue;
+                  }
+                  // Horizontal rule
+                  if (/^-{3,}$/.test(line)) {
+                    y += 2;
+                    pdf.line(margin, y, pageWidth - margin, y);
+                    y += 5;
+                    continue;
+                  }
+                  // ### Heading
+                  if (line.startsWith("### ")) {
+                    pdf.setFont("helvetica", "bold");
+                    addText(line.replace(/^###\s*/, ""), 13);
+                    y += 2;
+                    continue;
+                  }
+                  // ## Heading
+                  if (line.startsWith("## ")) {
+                    pdf.setFont("helvetica", "bold");
+                    addText(line.replace(/^##\s*/, ""), 15);
+                    y += 3;
+                    continue;
+                  }
+                  // # Heading
+                  if (line.startsWith("# ")) {
+                    pdf.setFont("helvetica", "bold");
+                    addText(line.replace(/^#\s*/, ""), 17);
+                    y += 4;
+                    continue;
+                  }
+                  // Numbered list
+                  if (/^\d+\./.test(line)) {
+                    pdf.setFont("helvetica", "normal");
+                    addText(line, 11, 5);
+                    continue;
+                  }
+                  // Bullet list
+                  if (line.startsWith("- ") || line.startsWith("* ")) {
+                    pdf.setFont("helvetica", "normal");
+                    addText("• " + line.substring(2), 11, 5);
+                    continue;
+                  }
+                  // Bold paragraph title (**text**)
+                  const boldMatch = line.match(/^\*\*(.+?)\*\*:?\s*$/);
+                  if (boldMatch) {
+                    pdf.setFont("helvetica", "bold");
+                    addText(boldMatch[1], 12);
+                    continue;
+                  }
+                  // Remove inline markdown markers
+                  // line = line
+                  //   .replace(/\*\*(.*?)\*\*/g, "$1")
+                  //   .replace(/__(.*?)__/g, "$1")
+                  //   .replace(/`(.*?)`/g, "$1");
+                  line = line.replace(/`(.*?)`/g, "$1");
+                  addText(line);
+                }
+
+                pdf.save(`${doc.name}-AI-Report.pdf`);
+              }}
+              disabled={!doc.aiSummary}
             >
               <Download className="h-4 w-4 mr-2" />
-              Download
+              Download AI Report
             </Button>
           )}
 
