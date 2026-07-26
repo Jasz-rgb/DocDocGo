@@ -22,7 +22,7 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
 
   if (!orgSlug) {       // see if orgslug is defined
     console.error("orgSlug is undefined");
-    redirect("/dashboard");
+    redirect(`/${orgSlug}/dashboard`);
   }
   console.log("====== ORG DEBUG ======");
   console.log("URL slug:", orgSlug);

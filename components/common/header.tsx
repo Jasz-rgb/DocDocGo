@@ -22,7 +22,7 @@ export default function Header() {
       return [
         ...baseItems,
         {
-          href: `/${organization.slug}`,
+          href: `/${organization.slug}/dashboard`,
           label: "Organization Dashboard",
           icon: <Building className="h-4 w-4" />,
         },

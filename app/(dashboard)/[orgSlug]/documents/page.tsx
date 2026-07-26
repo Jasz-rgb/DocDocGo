@@ -130,45 +130,6 @@ export default function DocumentsPage() {
         <DocumentUploadDialog onUploadSuccess={fetchDocuments} />
       </div>
 
-      {/* Stats Bar */}
-      {documents.length > 0 && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{documents.length}</div>
-                <p className="text-sm text-gray-500">Total Documents</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
-                  {documents.filter((d) => d.aiSummary).length}
-                </div>
-                <p className="text-sm text-gray-500">Analyzed</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold">
-                  {formatFileSize(
-                    documents.reduce(
-                      (acc, doc) => acc + (doc.fileSize || 0),
-                      0,
-                    ),
-                  )}
-                </div>
-                <p className="text-sm text-gray-500">Total Size</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Documents List */}
       <Card>
         <CardHeader>

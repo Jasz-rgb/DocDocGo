@@ -2,10 +2,17 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@/components/ui/button";
 import {FileText,Brain,MessageSquare,Users, ArrowRight,} from "lucide-react";
-
+import { prisma } from "@/lib/prisma";
+interface OrgDashboardPageProps {
+  params: Promise<{ orgSlug: string }>
+}
 export default async function Home() {
   const { userId,orgId  } = await auth();
-
+  const organization = orgId
+    ? await prisma.organization.findUnique({
+        where: { clerkOrgId: orgId },
+      })
+    : null;
   console.log("Home userId:", userId);
   return (
     <main>
@@ -44,7 +51,7 @@ export default async function Home() {
                   </Link>
                 </>
               ) : orgId ? (
-                <Link href="/documents">
+                <Link href={`/${organization?.slug}/documents`}>
                   <Button size="lg">
                     Go to Documents
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -223,7 +230,7 @@ export default async function Home() {
 
           <div className="mt-8">
             {userId ? (
-              <Link href="/documents">
+              <Link href={`/${organization?.slug}/documents`}>
                 <Button size="lg">
                   Open Documents
                 </Button>

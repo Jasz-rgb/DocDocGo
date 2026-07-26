@@ -6,16 +6,21 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
-// interface OrgDashboardPageProps {
-//   params: Promise<{ orgSlug: string }>;     //
-// }
-
+interface OrgDashboardPageProps {
+  params: Promise<{ orgSlug: string }>;     //
+}
+function formatFileSize(bytes: number) {
+  if (bytes === 0) return "0 B";
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+}
 export default async function OrgDashboardPage() {
   const { userId,orgId } = await auth();
-
+  
   if (!userId) redirect("/sign-in");
   if (!orgId) redirect("/select-org");
-
+  
   const organization = await prisma.organization.findUnique({
     where: {
       clerkOrgId: orgId,
@@ -28,6 +33,9 @@ export default async function OrgDashboardPage() {
         },
       },
       documents: {
+        where:{
+          isLatest:true
+        },
         take: 5,
         orderBy: { createdAt: "desc" },
       },
@@ -37,7 +45,12 @@ export default async function OrgDashboardPage() {
   if (!organization) {
     redirect("/select-org");
   }
-
+  const totalDocuments = await prisma.document.count({
+    where: {
+      organizationId: organization.id,
+      isLatest: true,
+    },
+  });
   const membership = await prisma.organizationMember.findFirst({  //check if member
     where: {
       organizationId: organization.id,
@@ -48,14 +61,24 @@ export default async function OrgDashboardPage() {
   if (!membership) {
     redirect("/select-org");
   }
-
+  
   const analyzedDocs = await prisma.document.count({
     where: {
       organizationId: organization.id,
+      isLatest:true,
       aiSummary: { not: null },
     },
   });
-
+  const storage = await prisma.document.aggregate({
+    where: {
+      organizationId: organization.id,
+      isLatest: true,
+    },
+    _sum: {
+      fileSize: true,
+    },
+  });
+  
   return (
     <div className="space-y-8">
       <div>
@@ -64,7 +87,7 @@ export default async function OrgDashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Total Documents</CardTitle>
@@ -72,9 +95,9 @@ export default async function OrgDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {organization._count.documents}
+              {totalDocuments}
             </div>
-            <Link href="/documents">
+            <Link href={`/${organization?.slug}/documents`}>
               <Button variant="ghost" size="sm" className="mt-2">
                 View Documents
                 <ArrowRight className="ml-2 h-3 w-3" />
@@ -92,10 +115,12 @@ export default async function OrgDashboardPage() {
             <div className="text-3xl font-bold">
               {organization._count.members}
             </div>
-            <Button variant="ghost" size="sm" className="mt-2">
-              View Team
-              <ArrowRight className="ml-2 h-3 w-3" />
-            </Button>
+            <Link href="/settings/organization">
+              <Button variant="ghost" size="sm" className="mt-2">
+                View Team
+                <ArrowRight className="ml-2 h-3 w-3" />
+              </Button>
+            </Link>            
           </CardContent>
         </Card>
 
@@ -108,15 +133,27 @@ export default async function OrgDashboardPage() {
             <div className="text-3xl font-bold">{analyzedDocs}</div>
             <p className="text-sm text-gray-500 mt-1">
               {(
-                (analyzedDocs / organization._count.documents) * 100 || 0
+                ((analyzedDocs / totalDocuments) * 100 || 0)
               ).toFixed(0)}
               % analyzed
             </p>
           </CardContent>
         </Card>
-      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Storage Used</CardTitle>
+            <CardDescription>Total uploaded size</CardDescription>
+          </CardHeader>
 
-      {/* Recent Documents */}
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {formatFileSize(storage._sum.fileSize ?? 0)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+{/* //solve this  */}
+      Recent Documents
       <Card>
         <CardHeader>
           <CardTitle>Recent Documents</CardTitle>
@@ -127,7 +164,7 @@ export default async function OrgDashboardPage() {
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">No documents uploaded yet</p>
-              <Link href="/documents">
+              <Link href={`/${organization?.slug}/documents`}>
                 <Button>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload First Document
