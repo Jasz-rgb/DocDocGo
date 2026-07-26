@@ -117,6 +117,9 @@ export const DocumentScalarFieldEnum = {
   sentiment: 'sentiment',
   organizationId: 'organizationId',
   userId: 'userId',
+  version: 'version',
+  isLatest: 'isLatest',
+  parentId: 'parentId',
   createdAt: 'createdAt'
 } as const
 

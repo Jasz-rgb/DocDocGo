@@ -118,34 +118,59 @@ export async function POST(request: Request) {
       organizationId: organization.id,
       userId: user.id, 
     });
-
-    const document = await prisma.document.create({
-      data: {
+    const latest = await prisma.document.findFirst({
+      where: {
+        organizationId: organization.id,
         name,
-        content: extractedContent || null,
-        fileUrl,
-        fileSize: fileSize || 0,
-        fileType: fileType || "unknown",
-        organizationId: organization.id, 
-        userId: user.id,
-        aiKeywords: [],
+        isLatest: true,
       },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        organization: {
-          select: {
-            name: true,
-            clerkOrgId: true, //include for ref
-          },
-        },
+      orderBy: {
+        version: "desc",
       },
     });
 
+    const document = await prisma.$transaction(async (tx) => {
+      if (latest) {
+        await tx.document.update({
+          where: { id: latest.id },
+          data: { isLatest: false },
+        });
+      }
+
+      return tx.document.create({
+        data: {
+          name,
+          content: extractedContent || null,
+
+          fileUrl,
+          fileSize: fileSize || 0,
+          fileType: fileType || "unknown",
+
+          organizationId: organization.id,
+          userId: user.id,
+
+          version: latest ? latest.version + 1 : 1,
+          parentId: latest ? (latest.parentId ?? latest.id) : null,
+          isLatest: true,
+
+          aiKeywords: [],
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          organization: {
+            select: {
+              name: true,
+              clerkOrgId: true,
+            },
+          },
+        },
+      });
+    });
     console.log("✅ Document created successfully:", document.id);
 
     return NextResponse.json({
@@ -224,7 +249,10 @@ export async function GET(request: Request) {
     }
 
     const documents = await prisma.document.findMany({
-      where: { organizationId: organization.id }, //Us DATABASE ID
+      where: {
+        organizationId: organization.id,
+        isLatest: true,
+      },
       include: {
         user: {
           select: {
@@ -239,7 +267,9 @@ export async function GET(request: Request) {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return NextResponse.json({
