@@ -5,29 +5,6 @@ import { FaGithub, FaXTwitter } from "react-icons/fa6";
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
-  // const footerLinks = {
-  //   Product: [
-  //     { label: "Features", href: "/#features" },
-  //     { label: "Pricing", href: "/pricing" },
-  //     { label: "API", href: "/api-docs" },
-  //   ],
-  //   Company: [
-  //     { label: "About", href: "/about" },
-  //     { label: "Blog", href: "/blog" },
-  //     { label: "Careers", href: "/careers" },
-  //   ],
-  //   Legal: [
-  //     { label: "Privacy", href: "/privacy" },
-  //     { label: "Terms", href: "/terms" },
-  //     { label: "Security", href: "/security" },
-  //   ],
-  //   Support: [
-  //     { label: "Help Center", href: "/help" },
-  //     { label: "Contact Us", href: "/contact" },
-  //     { label: "Status", href: "/status" },
-  //   ],
-  // };
-
   // const socialLinks = [
   //   {
   //     icon: <FaGithub className="h-5 w-5" />,
@@ -35,14 +12,9 @@ export default function Footer() {
   //     label: "GitHub",
   //   },
   //   {
-  //     icon: <FaXTwitter className="h-5 w-5" />,
-  //     href: "https://twitter.com",
-  //     label: "Twitter",
-  //   },
-  //   {
   //     icon: <Mail className="h-5 w-5" />,
-  //     href: "mailto:support@docdocgo.com",
-  //     label: "Email",
+  //     href: "mailid",
+  //     label: "email",
   //   },
   // ];
 
@@ -69,13 +41,8 @@ export default function Footer() {
       label: "GitHub",
     },
     {
-      icon: <FaXTwitter className="h-5 w-5" />,
-      href: "https://twitter.com/yourhandle",
-      label: "Twitter",
-    },
-    {
       icon: <Mail className="h-5 w-5" />,
-      href: "mailto:your@email.com",
+      href: "jasminesahoo007@email.com",
       label: "Email",
     },
   ];
@@ -107,43 +74,6 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-          </div>
-
-          {/* Footer Links */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category}>
-              <h3 className="font-semibold text-lg mb-4">{category}</h3>
-              <ul className="space-y-2">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-gray-600 mb-4 md:mb-0">
-            © {currentYear} DocDocGo. All rights reserved.
-          </div>
-          <div className="flex gap-6 text-sm text-gray-600">
-            <Link href="/privacy" className="hover:text-gray-900">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="hover:text-gray-900">
-              Terms of Service
-            </Link>
-            <Link href="/cookies" className="hover:text-gray-900">
-              Cookie Policy
-            </Link>
           </div>
         </div>
       </div>

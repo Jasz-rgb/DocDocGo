@@ -32,6 +32,11 @@ export default function Header() {
           icon: <FileText className="h-4 w-4" />,
         },
         {
+          href: "/settings/organization",
+          label: "Manage Members",
+          icon: <Users className="h-4 w-4" />,
+        },
+        {
           href: "/select-org",
           label: "Switch Organization",
           icon: <Users className="h-4 w-4" />,
