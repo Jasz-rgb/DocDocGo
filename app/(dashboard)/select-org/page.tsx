@@ -109,7 +109,7 @@ export default function SelectOrgPage() {
           organization: organization.id,
         });
       }
-      router.push(`/${organization.slug}`);
+      router.push(`/${organization.slug}/dashboard`);
     } catch (error) {
       console.error("Failed to switch organization:", error);
       toast.error("Failed to switch organization");
