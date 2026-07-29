@@ -5,21 +5,35 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    //1.check auth
+    //1. Check authentication
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: "Please sign in" }, { status: 401 });
-    }
-
-    const { documentId, organizationId, analysisType } = await request.json();  //2.get request data
-    if (!documentId || !organizationId) {
       return NextResponse.json(
-        { error: "Missing document or organization ID" },
-        { status: 400 },
+        { error: "Please sign in" },
+        { status: 401 }
       );
     }
 
-    const document = await prisma.document.findFirst({  //3.Find document
+    //2. Parse request body
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+    const { documentId, organizationId, analysisType } = body;
+    if (!documentId || !organizationId) {
+      return NextResponse.json(
+        { error: "Missing document or organization ID" },
+        { status: 400 }
+      );
+    }
+
+    //3. Find document
+    const document = await prisma.document.findFirst({
       where: {
         id: documentId,
         organization: {
@@ -36,19 +50,24 @@ export async function POST(request: Request) {
     if (!document) {
       return NextResponse.json(
         { error: "Document not found or no access" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    const content = document.content || document.name;   //4.get content
+    //4. validate content
+    const content = document.content || document.name;
     if (!content || content.trim().length < 5) {
       return NextResponse.json(
         { error: "Document has no content to analyze" },
-        { status: 400 },
+        { status: 400 }
       );
     }
-    const summary = await analyzeWithGemini(content, analysisType);  //5.run a analysis
-    const updatedDocument = await prisma.document.update({      //6.savee
+
+    //5. Analyze
+    const summary = await analyzeWithGemini(content, analysisType);
+
+    //6. Save
+    const updatedDocument = await prisma.document.update({
       where: { id: documentId },
       data: {
         aiSummary: summary,
@@ -57,7 +76,8 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({      //7.return success
+    //7. Success
+    return NextResponse.json({
       success: true,
       summary,
       document: {
@@ -66,11 +86,12 @@ export async function POST(request: Request) {
         aiSummary: updatedDocument.aiSummary,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Analysis error:", error);
+
     return NextResponse.json(
-      { error: "Analysis failed: " + error.message },
-      { status: 500 },
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
 }

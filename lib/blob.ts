@@ -20,7 +20,10 @@ export async function uploadToBlob(
     };
   } catch (error) {
     console.error("Blob upload error:", error);
-    throw new Error("Failed to upload file");
+
+    throw error instanceof Error
+      ? error
+      : new Error("Failed to upload file");
   }
 }
 
@@ -31,6 +34,9 @@ export async function deleteFromBlob(url: string): Promise<void> {
     });
   } catch (error) {
     console.error("Blob delete error:", error);
-    throw new Error("Failed to delete file");
+
+    throw error instanceof Error
+      ? error
+      : new Error("Failed to delete file");
   }
 }

@@ -7,39 +7,50 @@ export async function POST(request: Request) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+
     const { clerkOrgId, name, slug } = body;
 
     if (!clerkOrgId || !name) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Check if organization already exists
     const existingOrg = await prisma.organization.findUnique({
       where: { clerkOrgId },
     });
 
     if (existingOrg) {
-      return NextResponse.json({
-        success: true,
-        organization: existingOrg,
-        message: "Organization already exists",
-      });
+      return NextResponse.json(
+        {
+          error: "Organization already exists",
+          organization: existingOrg,
+        },
+        { status: 409 }
+      );
     }
 
-    // Find or create user
     let user = await prisma.user.findUnique({
       where: { clerkUserId: userId },
     });
 
     if (!user) {
-      // Create user if doesn't exist
       user = await prisma.user.create({
         data: {
           clerkUserId: userId,
@@ -49,7 +60,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create organization in database
     const organization = await prisma.organization.create({
       data: {
         clerkOrgId,
@@ -58,7 +68,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create membership for the creator
     await prisma.organizationMember.create({
       data: {
         userId: user.id,
@@ -72,11 +81,12 @@ export async function POST(request: Request) {
       organization,
       message: "Organization created successfully",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ORGANIZATIONS_POST]", error);
+
     return NextResponse.json(
-      { error: error.message || "Failed to create organization" },
-      { status: 500 },
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
 }

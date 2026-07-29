@@ -12,7 +12,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (error) {
+      console.error("Invalid form data:", error);
+      return NextResponse.json(
+        { error: "Invalid form data" },
+        { status: 400 },
+      );
+    }
     const name = formData.get("name") as string;
     const content = formData.get("content") as string;
     const clerkOrgId = formData.get("organizationId") as string; //Reame to clarify
@@ -86,26 +95,42 @@ export async function POST(request: Request) {
     let extractedContent = content;
 
     if (file && file.size > 0) {    //upload file to vercelblob if exists
-      const blob = await uploadToBlob(file, clerkOrgId, userId);
+      let blob;
+      try {
+        blob = await uploadToBlob(file, clerkOrgId, userId);
+      } catch (error) {
+        console.error("Blob upload failed:", error);
+        return NextResponse.json(
+          { error: "Failed to upload file" },
+          { status: 500 },
+        );
+      }
       fileUrl = blob.url;
       fileSize = file.size;
       fileType = file.type;
 
-      if (!extractedContent) {
-        try {
-          extractedContent = await extractText(file);
-
-          console.log("Extracted length:", extractedContent.length);
-          console.log(
-            extractedContent
-              ? extractedContent.substring(0, 500)
-              : "No text extracted"
-          );
-        } catch (err) {
-          console.error("Text extraction failed:", err);
-          extractedContent = "";
-        }
+    if (!extractedContent) {
+      try {
+        extractedContent = await Promise.race([
+          extractText(file),
+          new Promise<string>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Text extraction timed out")),
+              30000 // 30 seconds
+            )
+          ),
+        ]);
+        console.log("Extracted length:", extractedContent.length);
+        console.log(
+          extractedContent
+            ? extractedContent.substring(0, 500)
+            : "No text extracted"
+        );
+      } catch (err) {
+        console.error("Text extraction failed:", err);
+        extractedContent = "";
       }
+    }
       console.log("Extracted content length:", extractedContent?.length);
       console.log("First 300 chars:");
       console.log(extractedContent?.slice(0, 300));
@@ -129,48 +154,60 @@ export async function POST(request: Request) {
       },
     });
 
-    const document = await prisma.$transaction(async (tx) => {
-      if (latest) {
-        await tx.document.update({
-          where: { id: latest.id },
-          data: { isLatest: false },
+    // const document = await prisma.$transaction(async (tx) => {
+    let document;
+    try {
+      document = await prisma.$transaction(async (tx) => {
+        if (latest) {
+          await tx.document.update({
+            where: { id: latest.id },
+            data: { isLatest: false },
+          });
+        }
+
+        return tx.document.create({
+          data: {
+            name,
+            content: extractedContent || null,
+
+            fileUrl,
+            fileSize: fileSize || 0,
+            fileType: fileType || "unknown",
+
+            organizationId: organization.id,
+            userId: user.id,
+
+            version: latest ? latest.version + 1 : 1,
+            parentId: latest ? (latest.parentId ?? latest.id) : null,
+            isLatest: true,
+
+            aiKeywords: [],
+          },
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+            organization: {
+              select: {
+                name: true,
+                clerkOrgId: true,
+              },
+            },
+          },
         });
-      }
-
-      return tx.document.create({
-        data: {
-          name,
-          content: extractedContent || null,
-
-          fileUrl,
-          fileSize: fileSize || 0,
-          fileType: fileType || "unknown",
-
-          organizationId: organization.id,
-          userId: user.id,
-
-          version: latest ? latest.version + 1 : 1,
-          parentId: latest ? (latest.parentId ?? latest.id) : null,
-          isLatest: true,
-
-          aiKeywords: [],
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-          organization: {
-            select: {
-              name: true,
-              clerkOrgId: true,
-            },
-          },
-        },
       });
-    });
+    } catch (error) {
+      console.error("Database transaction failed:", error);
+
+      return NextResponse.json(
+        { error: "Failed to save document" },
+        { status: 500 },
+      );
+    }
+      
     console.log("✅ Document created successfully:", document.id);
 
     return NextResponse.json({
@@ -185,14 +222,10 @@ export async function POST(request: Request) {
         uploadedBy: document.user.name,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Document upload error:", error);
     return NextResponse.json(
-      {
-        error: error.message || "Failed to upload document",
-        details:
-          process.env.NODE_ENV === "development" ? error.stack : undefined,
-      },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
@@ -280,10 +313,11 @@ export async function GET(request: Request) {
         documentCount: documents.length,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get documents error:", error);
+
     return NextResponse.json(
-      { error: error.message || "Failed to get documents" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

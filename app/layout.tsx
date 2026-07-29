@@ -19,7 +19,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await syncUserToDatabase();
+  try {
+    await syncUserToDatabase();
+  } catch (error) {
+    console.error("Failed to sync user to database:", error);
+  }
+
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>

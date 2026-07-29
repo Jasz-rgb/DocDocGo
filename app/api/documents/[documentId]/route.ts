@@ -61,10 +61,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       success: true,
       message: "Document deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Delete document error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to delete document" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

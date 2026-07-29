@@ -1,11 +1,11 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useOrganizationList, useUser } from "@clerk/nextjs";
+import { ArrowRight, Building, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {Card,CardContent,CardDescription,CardHeader,CardTitle,} from "@/components/ui/card";
-import {Building,Plus,Users,ArrowRight,Loader2,RefreshCw,} from "lucide-react";
 import { toast } from "sonner";
 
 export default function SelectOrgPage() {
@@ -73,9 +73,12 @@ export default function SelectOrgPage() {
           }),
         });
 
-        const data = await response.json();
-
-        console.log("Organization API:", response.status, data);
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error("Invalid response from server");
+        }
 
         if (!response.ok) {
           throw new Error(data.error ?? "Failed to save organization");
@@ -91,14 +94,17 @@ export default function SelectOrgPage() {
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));      //force refresh of org list
-      refreshOrganizations();
+      await refreshOrganizations();
 
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to create organization:", error);
-      toast.error(error.message || "Failed to create organization");
-    } finally {
-      setIsCreating(false);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create organization"
+      );
     }
   };
 
