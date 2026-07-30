@@ -15,7 +15,7 @@ export default async function Home() {
   try {
     const authData = await auth();
     userId = authData.userId;
-    orgId = authData.orgId;
+    orgId = authData.orgId ?? null;
 
     if (orgId) {
       organization = await prisma.organization.findUnique({
