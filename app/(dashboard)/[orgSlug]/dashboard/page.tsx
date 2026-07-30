@@ -176,24 +176,28 @@ export default async function OrgDashboardPage() {
               {organization.documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium">{doc.name}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{doc.name}</p>
                       <p className="text-sm text-gray-500">
                         Uploaded {new Date(doc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  {doc.aiSummary ? (
-                    <Brain className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Button variant="outline" size="sm">
-                      Analyze
-                    </Button>
-                  )}
+
+                  <div className="self-start sm:self-auto">
+                    {doc.aiSummary ? (
+                      <Brain className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <Button variant="outline" size="sm">
+                        Analyze
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

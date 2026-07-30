@@ -41,18 +41,23 @@ export function DocumentCard({
 
   return (
     <div className="border rounded-lg p-6 hover:shadow-lg transition-all">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         {/* Left Column: Document Info */}
         <div className="flex items-start gap-4 flex-1">
           <div className="p-3 rounded-lg bg-blue-100">
             <FileText className="h-6 w-6 text-blue-600" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {/* Document Header */}
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="font-semibold text-lg mb-1">{doc.name}</h3>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-lg break-all">
+                    {doc.name}
+                  </h3>
+                </div>
+                {/* wrap */}
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">   
                   <span className="flex items-center gap-1">
                     <User className="h-3 w-3" />
                     {doc.user.name || doc.user.email}
@@ -149,7 +154,7 @@ export function DocumentCard({
         </div>
 
         {/* Right Column: Actions */}
-        <div className="flex flex-col gap-2 ml-4">
+        <div className="flex flex-col gap-2 w-full lg:w-60 lg:ml-4">
           {/* Download Button */}
           {doc.fileUrl && (
             <Button
@@ -423,7 +428,7 @@ export function DocumentCard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 justify-start"
+            className="w-full lg:w-auto justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={() => onDelete(doc.id)}
           >
             <Trash2 className="h-4 w-4 mr-2" />
